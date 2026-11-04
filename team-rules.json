@@ -1,0 +1,26 @@
+{
+  "branches": {
+    "main": "Production branch",
+    "dev": "Development branch (default)"
+  },
+  "rules": [
+    {
+      "id": 1,
+      "rule": "Never commit or merge anything directly into main.",
+      "details": "All work goes into dev first, through a feature branch. main is updated only by merging dev into main."
+    },
+    {
+      "id": 2,
+      "rule": "Merge flow is always: feature branch, then dev, then main."
+    },
+    {
+      "id": 3,
+      "rule": "Do not add AI co-author or co-contributor attribution to commits or pull requests."
+    },
+    {
+      "id": 4,
+      "rule": "Every feature branch must update the tests.",
+      "details": "Fix tests broken by the change and add tests for any new behaviour before the branch is merged into dev."
+    }
+  ]
+}
