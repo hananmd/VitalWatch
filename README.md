@@ -1,5 +1,7 @@
 # VitalWatch
 
+[![CI](https://github.com/hananmd/VitalWatch/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/hananmd/VitalWatch/actions/workflows/ci.yml)
+
 Remote patient monitoring for care homes. Wearable readings come in, the backend checks vitals and movement, and staff see alerts on a live screen.
 
 ## Layout
