@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vitalwatch.local/contracts/alert.schema.json",
+  "title": "AlertEvent",
+  "description": "Raised by the vitals or movement module, or by alert fusion. Lifecycle changes (acknowledged, escalated, resolved) are tracked by the notifications module, not in this event.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "alert_id",
+    "tenant_id",
+    "patient_id",
+    "source",
+    "type",
+    "severity",
+    "reasons",
+    "event_time",
+    "created_at",
+    "late"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "alert_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "patient_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "source": {
+      "description": "Which module raised the alert.",
+      "enum": ["vitals", "movement", "fusion"]
+    },
+    "type": {
+      "description": "What was detected. New values are added through a contract change.",
+      "enum": [
+        "high_heart_rate",
+        "low_heart_rate",
+        "fever",
+        "vitals_anomaly",
+        "fall",
+        "wandering",
+        "device_offline",
+        "combined"
+      ]
+    },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "score": {
+      "description": "Optional risk or severity score from 0 (no risk) to 1 (highest). Set by smarter rules, models and fusion.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "reasons": {
+      "description": "Human-readable reasons shown to caregivers, with machine-readable codes.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reason"
+      }
+    },
+    "event_time": {
+      "description": "When the detected condition happened (device time, see decision 0003).",
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "description": "When the alert was raised, server clock, UTC.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "late": {
+      "description": "True when the detection came from readings that arrived after the allowed lateness.",
+      "type": "boolean"
+    },
+    "related_alert_ids": {
+      "description": "For fusion alerts: the domain alerts that were combined.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "zone_id": {
+      "description": "Location zone when known.",
+      "type": "string",
+      "maxLength": 64
+    }
+  },
+  "$defs": {
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 64
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "source": {
+          "enum": ["vitals", "movement", "fusion"]
+        }
+      }
+    }
+  }
+}

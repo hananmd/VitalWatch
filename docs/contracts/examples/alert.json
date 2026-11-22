@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "alert_id": "c7e4b2a1-9d3f-4a6e-8b2c-5f1e0d9a7b34",
+  "tenant_id": "0b6a3f8e-2c1d-4e5f-8a9b-1c2d3e4f5a6b",
+  "patient_id": "a3d9e1f2-7b4c-4d8e-9f1a-2b3c4d5e6f70",
+  "device_id": "DEV-0042",
+  "source": "fusion",
+  "type": "combined",
+  "severity": "critical",
+  "score": 0.93,
+  "reasons": [
+    {
+      "code": "likely_fall",
+      "message": "Impact followed by stillness in corridor-east at 02:00",
+      "source": "movement"
+    },
+    {
+      "code": "heart_rate_spike",
+      "message": "Heart rate 128 bpm, well above this patient's resting baseline of 68 bpm",
+      "source": "vitals"
+    }
+  ],
+  "event_time": "2026-11-22T02:00:05Z",
+  "created_at": "2026-11-22T02:00:07.031Z",
+  "late": false,
+  "related_alert_ids": [
+    "1e2f3a4b-5c6d-4e7f-8a9b-0c1d2e3f4a5b",
+    "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+  ],
+  "zone_id": "corridor-east"
+}

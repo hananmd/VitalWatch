@@ -1,0 +1,651 @@
+openapi: 3.1.0
+info:
+  title: VitalWatch Core API
+  version: 0.1.0
+  description: |
+    Outline of the Core API for milestone "Weeks 1-4: Foundation".
+    This is the agreed contract; FastAPI's generated spec must stay compatible with it.
+
+    Tenant rules (see issue #8):
+    - The tenant is taken only from the verified JWT (`tenant_id` claim). No request body,
+      query parameter or header can set or override it.
+    - Records belonging to another tenant return 404, never 403, so their existence is not leaked.
+    - `platform_admin` manages tenants and their first admins; it does not read patient data.
+
+servers:
+  - url: http://localhost:8000
+    description: Local (Docker Compose)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: health
+  - name: auth
+  - name: tenants
+  - name: users
+  - name: patients
+  - name: devices
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness check
+      security: []
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    const: ok
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Exchange email and password for an access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/tenants:
+    get:
+      tags: [tenants]
+      summary: List care homes (platform_admin)
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Tenants
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tenant" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [tenants]
+      summary: Onboard a care home (platform_admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TenantCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tenant" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/tenants/{tenant_id}:
+    parameters:
+      - $ref: "#/components/parameters/TenantId"
+    get:
+      tags: [tenants]
+      summary: Get a care home (platform_admin)
+      responses:
+        "200":
+          description: Tenant
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tenant" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/tenants/{tenant_id}/admins:
+    parameters:
+      - $ref: "#/components/parameters/TenantId"
+    post:
+      tags: [tenants]
+      summary: Create a care home admin for a tenant (platform_admin)
+      description: The only endpoint where a tenant is chosen explicitly, and only platform_admin may call it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/users:
+    get:
+      tags: [users]
+      summary: List staff in the caller's care home (care_home_admin)
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [users]
+      summary: Add a staff member to the caller's care home (care_home_admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/users/{user_id}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [users]
+      summary: Get a staff member (care_home_admin)
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [users]
+      summary: Update a staff member (care_home_admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [users]
+      summary: Remove a staff member (care_home_admin)
+      responses:
+        "204":
+          description: Deleted
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/patients:
+    get:
+      tags: [patients]
+      summary: List patients in the caller's care home (care_home_admin, caregiver)
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Patient" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [patients]
+      summary: Register a patient (care_home_admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/patients/{patient_id}:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [patients]
+      summary: Get a patient (care_home_admin, caregiver)
+      responses:
+        "200":
+          description: Patient
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [patients]
+      summary: Update a patient (care_home_admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [patients]
+      summary: Remove a patient (care_home_admin)
+      responses:
+        "204":
+          description: Deleted
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/devices:
+    get:
+      tags: [devices]
+      summary: List devices in the caller's care home (care_home_admin)
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Device" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [devices]
+      summary: Register a device and issue its credential (care_home_admin)
+      description: The credential is returned once in this response and cannot be retrieved again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceCreate" }
+      responses:
+        "201":
+          description: Registered
+          headers:
+            Cache-Control:
+              schema: { const: no-store }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceWithCredential" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/devices/{device_id}:
+    parameters:
+      - $ref: "#/components/parameters/DeviceId"
+    get:
+      tags: [devices]
+      summary: Get a device (care_home_admin)
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [devices]
+      summary: Link or unlink a device to a patient (care_home_admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [devices]
+      summary: Remove a device (care_home_admin)
+      responses:
+        "204":
+          description: Deleted
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/devices/{device_id}/revoke:
+    parameters:
+      - $ref: "#/components/parameters/DeviceId"
+    post:
+      tags: [devices]
+      summary: Revoke the device's credential (care_home_admin)
+      description: After revocation the device can no longer authenticate. Revoking twice is a no-op.
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/devices/{device_id}/credentials:
+    parameters:
+      - $ref: "#/components/parameters/DeviceId"
+    post:
+      tags: [devices]
+      summary: Rotate the device's credential (care_home_admin, optional in #9)
+      description: Issues a new credential, revokes the old one, and returns the new one once.
+      responses:
+        "201":
+          description: New credential issued
+          headers:
+            Cache-Control:
+              schema: { const: no-store }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceWithCredential" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Claims: `sub` (user ID), `tenant_id` (null for platform_admin), `role`, `iat`, `exp`.
+
+  parameters:
+    TenantId:
+      name: tenant_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PatientId:
+      name: patient_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DeviceId:
+      name: device_id
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/DeviceIdValue" }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired token, or wrong login details
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated, but the role is not allowed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found, or belongs to another tenant
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Already exists
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: Request body or parameters failed validation
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          description: A message, or a list of validation errors (FastAPI default shape).
+          oneOf:
+            - type: string
+            - type: array
+              items: { type: object }
+
+    Role:
+      enum: [platform_admin, care_home_admin, caregiver]
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128, writeOnly: true }
+
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token: { type: string }
+        token_type: { const: bearer }
+        expires_in: { type: integer, description: Seconds until expiry }
+
+    Tenant:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        created_at: { type: string, format: date-time, readOnly: true }
+
+    TenantCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+
+    User:
+      type: object
+      required: [id, tenant_id, email, full_name, role, is_active, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: [string, "null"], format: uuid }
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    AdminCreate:
+      type: object
+      additionalProperties: false
+      required: [email, full_name, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        full_name: { type: string, minLength: 1, maxLength: 200 }
+        password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+
+    UserCreate:
+      type: object
+      additionalProperties: false
+      description: No tenant_id field; the tenant comes from the caller's token.
+      required: [email, full_name, role, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        full_name: { type: string, minLength: 1, maxLength: 200 }
+        role: { enum: [care_home_admin, caregiver] }
+        password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+
+    UserUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        full_name: { type: string, minLength: 1, maxLength: 200 }
+        role: { enum: [care_home_admin, caregiver] }
+        is_active: { type: boolean }
+
+    Patient:
+      type: object
+      required: [id, tenant_id, display_name, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        room: { type: [string, "null"] }
+        birth_year: { type: [integer, "null"] }
+        created_at: { type: string, format: date-time }
+
+    PatientCreate:
+      type: object
+      additionalProperties: false
+      description: Synthetic data only. No tenant_id field; the tenant comes from the caller's token.
+      required: [display_name]
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 200 }
+        room: { type: string, maxLength: 50 }
+        birth_year: { type: integer, minimum: 1900, maximum: 2100 }
+
+    PatientUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 200 }
+        room: { type: [string, "null"], maxLength: 50 }
+        birth_year: { type: [integer, "null"], minimum: 1900, maximum: 2100 }
+
+    DeviceIdValue:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: "^[A-Za-z0-9_-]+$"
+
+    Device:
+      type: object
+      required: [device_id, tenant_id, patient_id, status, created_at]
+      properties:
+        device_id: { $ref: "#/components/schemas/DeviceIdValue" }
+        tenant_id: { type: string, format: uuid }
+        patient_id: { type: [string, "null"], format: uuid }
+        status: { enum: [active, revoked] }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: [string, "null"], format: date-time }
+
+    DeviceCreate:
+      type: object
+      additionalProperties: false
+      required: [device_id]
+      properties:
+        device_id: { $ref: "#/components/schemas/DeviceIdValue" }
+        patient_id:
+          type: [string, "null"]
+          format: uuid
+          description: Must belong to the caller's tenant, otherwise 404.
+
+    DeviceUpdate:
+      type: object
+      additionalProperties: false
+      required: [patient_id]
+      properties:
+        patient_id:
+          type: [string, "null"]
+          format: uuid
+          description: Null unlinks the device. Must belong to the caller's tenant, otherwise 404.
+
+    DeviceWithCredential:
+      allOf:
+        - $ref: "#/components/schemas/Device"
+        - type: object
+          required: [credential]
+          properties:
+            credential:
+              type: string
+              readOnly: true
+              description: Shown once. Only a hash is stored. Never logged.

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vitalwatch.local/contracts/reading-event.schema.json",
+  "title": "ReadingEvent",
+  "description": "Internal event published by ingestion after a device reading passes validation and deduplication. Consumed by the vitals and movement modules. tenant_id and patient_id come from the device registry, never from the device payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "message_id",
+    "device_id",
+    "tenant_id",
+    "patient_id",
+    "event_time",
+    "received_at",
+    "metrics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "patient_id": {
+      "description": "Null when the device is registered but not linked to a patient. Engines skip these readings.",
+      "type": ["string", "null"],
+      "format": "uuid"
+    },
+    "event_time": {
+      "description": "When the device took the measurement (see decision 0003).",
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "description": "When ingestion received the message, server clock, UTC.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "battery_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "metrics": {
+      "$ref": "device-reading.schema.json#/$defs/metrics"
+    }
+  }
+}
