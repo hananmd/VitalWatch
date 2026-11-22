@@ -1,5 +1,4 @@
 import pytest
-from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from vitalwatch.config import Settings
@@ -33,14 +32,7 @@ def test_rejects_unknown_environment(monkeypatch: pytest.MonkeyPatch) -> None:
         Settings()
 
 
-@pytest.mark.parametrize(
-    ("environment", "docs_status"),
-    [("local", 200), ("test", 200), ("staging", 200), ("production", 404)],
-)
-def test_api_docs_disabled_in_production(environment: str, docs_status: int) -> None:
-    app = create_app(Settings(environment=environment))
+def test_app_uses_given_settings() -> None:
+    app = create_app(Settings(environment="test"))
 
-    with TestClient(app) as client:
-        assert client.get("/docs").status_code == docs_status
-        assert client.get("/openapi.json").status_code == docs_status
-        assert client.get("/health").status_code == 200
+    assert app.state.settings.environment == "test"

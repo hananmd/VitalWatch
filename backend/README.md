@@ -46,7 +46,7 @@ uv add <package>                              # add a dependency
 uv add --dev <package>                        # add a dev-only dependency
 ```
 
-API docs are at <http://localhost:8000/docs> (turned off when `VITALWATCH_ENVIRONMENT=production`).
+API docs are at <http://localhost:8000/docs>.
 
 ## Configuration
 
