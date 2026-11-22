@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vitalwatch.local/contracts/device-config.schema.json",
+  "title": "DeviceConfig",
+  "description": "Configuration pushed from the device registry to a device. A device applies a config only if config_version is higher than the one it has.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "device_id", "config_version", "issued_at", "sampling"],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "config_version": {
+      "description": "Increases by one with every change for this device.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sampling": {
+      "$ref": "#/$defs/sampling"
+    }
+  },
+  "$defs": {
+    "sampling": {
+      "description": "How often the device measures and sends each signal. Adaptive sampling raises these rates when risk goes up.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heart_rate_interval_s",
+        "temperature_interval_s",
+        "location_interval_s",
+        "accelerometer_hz",
+        "upload_interval_s"
+      ],
+      "properties": {
+        "heart_rate_interval_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "temperature_interval_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "location_interval_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "accelerometer_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 200
+        },
+        "upload_interval_s": {
+          "description": "How often buffered readings are sent.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      }
+    }
+  }
+}

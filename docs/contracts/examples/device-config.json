@@ -1,0 +1,13 @@
+{
+  "schema_version": "1",
+  "device_id": "DEV-0042",
+  "config_version": 3,
+  "issued_at": "2026-11-22T01:00:00Z",
+  "sampling": {
+    "heart_rate_interval_s": 5,
+    "temperature_interval_s": 60,
+    "location_interval_s": 10,
+    "accelerometer_hz": 50,
+    "upload_interval_s": 5
+  }
+}
