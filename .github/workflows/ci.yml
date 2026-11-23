@@ -46,7 +46,8 @@ jobs:
 
     env:
       VITALWATCH_ENVIRONMENT: test
-      VITALWATCH_DATABASE_URL: postgresql+psycopg://vitalwatch:ci-only-password@localhost:5432/vitalwatch
+      # DB tests create and drop their own randomly named databases on this server
+      VITALWATCH_TEST_DATABASE_URL: postgresql+psycopg://vitalwatch:ci-only-password@localhost:5432/vitalwatch
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

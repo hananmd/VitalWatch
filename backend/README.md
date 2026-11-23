@@ -11,6 +11,9 @@ backend/
 ├── src/vitalwatch/
 │   ├── main.py           # FastAPI app factory, /health
 │   ├── config.py         # settings from VITALWATCH_* environment variables
+│   ├── db.py             # SQLAlchemy Base, shared columns, engine
+│   ├── models.py         # imports every module's tables (for Alembic)
+│   ├── migrations/       # Alembic migrations (config in ../alembic.ini)
 │   ├── core/             # login, roles, tenants, staff, patients    (Abdullah)
 │   ├── devices/          # device registry and credentials           (Abdullah)
 │   ├── movement/         # fall detection, safe zones                (Abdullah)
@@ -20,6 +23,7 @@ backend/
 │   └── alerts/           # alert fusion                              (both)
 └── tests/
     ├── contract/         # checks against ../docs/contracts
+    ├── db/               # migrations and constraints, against real PostgreSQL
     └── ...
 ```
 
@@ -40,6 +44,7 @@ uv sync                 # install dependencies into .venv
 uv run uvicorn vitalwatch.main:app --reload   # run the API on http://localhost:8000
 uv run pytest                                 # all tests
 uv run pytest -m contract                     # contract tests only
+uv run pytest -m "not db"                     # skip tests that need PostgreSQL/Docker
 uv run ruff check .                           # lint
 uv run ruff format .                          # format
 uv add <package>                              # add a dependency
@@ -54,6 +59,22 @@ API docs are at <http://localhost:8000/docs>.
 | --- | --- | --- |
 | `VITALWATCH_ENVIRONMENT` | `local` | `local`, `test`, `staging`, `production` |
 | `VITALWATCH_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| `VITALWATCH_DATABASE_URL` | none | `postgresql+psycopg://user:password@host:5432/vitalwatch` |
+| `VITALWATCH_TEST_DATABASE_URL` | none | tests only: a Postgres server where tests may create and drop databases. If unset, tests start one with Docker (testcontainers). |
+
+## Database and migrations
+
+Each module defines its tables in its own `models.py`; `vitalwatch/models.py` imports them all. Schema changes always go through an Alembic migration. A test fails if the models and migrations drift apart.
+
+```sh
+# with VITALWATCH_DATABASE_URL set (e.g. the Compose Postgres on localhost:5432)
+uv run alembic upgrade head                                  # apply migrations
+uv run alembic downgrade -1                                  # undo the last one
+uv run alembic revision --autogenerate -m "add something"    # new migration, then review it by hand
+uv run alembic upgrade head --sql                            # print the SQL instead of running it
+```
+
+The database enforces the core rules itself: every table except `tenants` has a `tenant_id`; only `platform_admin` users have no tenant; a device can only be linked to a patient in its own tenant.
 
 ## Contracts
 
