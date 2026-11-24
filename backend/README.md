@@ -60,7 +60,15 @@ API docs are at <http://localhost:8000/docs>.
 | `VITALWATCH_ENVIRONMENT` | `local` | `local`, `test`, `staging`, `production` |
 | `VITALWATCH_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `VITALWATCH_DATABASE_URL` | none | `postgresql+psycopg://user:password@host:5432/vitalwatch` |
+| `VITALWATCH_JWT_SECRET` | none | Signing key for access tokens. At least 32 characters. Required for login. |
+| `VITALWATCH_JWT_EXPIRES_SECONDS` | `900` | Token lifetime in seconds, from 60 to 3600. |
 | `VITALWATCH_TEST_DATABASE_URL` | none | tests only: a Postgres server where tests may create and drop databases. If unset, tests start one with Docker (testcontainers). |
+
+## Authentication
+
+`POST /api/v1/auth/login` checks the password with Argon2id and returns a JWT signed with HS256. The token lives for 15 minutes by default. Claims are `sub` (user id), `tenant_id` (`null` for a platform admin), `role`, `iat` and `exp`.
+
+`get_current_user` rejects a token with a bad signature, a past expiry, or a missing claim. `require_roles(...)` returns 403 when the caller's role is not in the list. Passwords are stored only as Argon2id hashes, and validation errors strip the password before the response is sent.
 
 ## Database and migrations
 
