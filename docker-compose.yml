@@ -31,7 +31,7 @@ services:
     environment:
       VITALWATCH_ENVIRONMENT: ${VITALWATCH_ENVIRONMENT:-local}
       VITALWATCH_LOG_LEVEL: ${VITALWATCH_LOG_LEVEL:-INFO}
-      # Read by the backend once the database layer lands (#6)
+      VITALWATCH_JWT_SECRET: ${VITALWATCH_JWT_SECRET:?set VITALWATCH_JWT_SECRET in .env (see .env.example)}
       VITALWATCH_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vitalwatch}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vitalwatch}
     depends_on:
       postgres:
