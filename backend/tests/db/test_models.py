@@ -25,7 +25,7 @@ def make_user(tenant: Tenant | None, role: Role = Role.CAREGIVER, email: str = "
         email=email,
         full_name="Test Person",
         role=role,
-        password_hash="not-a-real-hash",  # noqa: S106 - placeholder, hashing arrives in #7
+        password_hash="not-a-real-hash",  # noqa: S106 - constraint tests do not log in
     )
 
 
