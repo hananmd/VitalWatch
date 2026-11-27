@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [dev, main]
   push:
-    branches: [dev]
+    branches: [dev, main]
   workflow_dispatch:
 
 # Least privilege: jobs only read the repo
@@ -21,6 +21,22 @@ env:
   IMAGE: vitalwatch-backend:ci
 
 jobs:
+  branch-flow:
+    name: Branch flow
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Feature branch, then dev, then main
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: python .github/scripts/check_branch_flow.py
+
   lint-test:
     name: Lint and test (backend)
     runs-on: ubuntu-latest
