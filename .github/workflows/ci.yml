@@ -4,16 +4,17 @@ on:
   pull_request:
     branches: [dev, main]
   push:
-    branches: [dev]
+    branches: [dev, main]
   workflow_dispatch:
 
 # Least privilege: jobs only read the repo
 permissions:
   contents: read
 
-# A new push to the same PR cancels the older run
+# A new push to the same pull request cancels the older run.
+# A push has no pull request number, so it uses the run id and is not cancelled by the next push.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -21,6 +22,22 @@ env:
   IMAGE: vitalwatch-backend:ci
 
 jobs:
+  branch-flow:
+    name: Branch flow
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Feature branch, then dev, then main
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: python .github/scripts/check_branch_flow.py
+
   lint-test:
     name: Lint and test (backend)
     runs-on: ubuntu-latest
@@ -99,7 +116,8 @@ jobs:
           timeout 30 sh -c 'until curl -fsS http://127.0.0.1:8000/health; do sleep 1; done' \
             || { docker logs backend; exit 1; }
           echo
-          test "$(docker exec backend id -u)" != "0" || { echo "container runs as root"; exit 1; }
+          uid=$(docker exec backend id -u)
+          test "$uid" != "0" || { echo "container runs as root"; exit 1; }
           docker rm -f backend
 
       - name: Trivy scan (image)
