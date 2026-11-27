@@ -25,7 +25,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---- Runtime stage: only Python and the virtual environment ----
 FROM python:3.12-slim-bookworm AS runtime
 
-RUN groupadd --system --gid 10001 vitalwatch \
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 vitalwatch \
     && useradd --system --uid 10001 --gid vitalwatch --no-create-home --shell /usr/sbin/nologin vitalwatch
 
 WORKDIR /app
