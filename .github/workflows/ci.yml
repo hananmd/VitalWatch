@@ -11,9 +11,10 @@ on:
 permissions:
   contents: read
 
-# A new push to the same PR cancels the older run
+# A new push to the same pull request cancels the older run.
+# A push has no pull request number, so it uses the run id and is not cancelled by the next push.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -115,7 +116,8 @@ jobs:
           timeout 30 sh -c 'until curl -fsS http://127.0.0.1:8000/health; do sleep 1; done' \
             || { docker logs backend; exit 1; }
           echo
-          test "$(docker exec backend id -u)" != "0" || { echo "container runs as root"; exit 1; }
+          uid=$(docker exec backend id -u)
+          test "$uid" != "0" || { echo "container runs as root"; exit 1; }
           docker rm -f backend
 
       - name: Trivy scan (image)
